@@ -528,10 +528,35 @@ async function run() {
       console.log(result); // for debugging
       res.send(result);
     });
+
+    // fetch all products (All Products page)
+    app.get("/all-products", async (req, res) => {
+      const result = await productCollection
+        .find()
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      res.send(result);
+    });
+
+
+
+
+
   } catch (err) {
     console.error(err);
   }
 }
+
+
+
+
+
+
+
+
+
+
 
 run().catch(console.dir);
 
