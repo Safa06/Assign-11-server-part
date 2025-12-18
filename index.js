@@ -1,0 +1,545 @@
+// require("dotenv").config();
+// const express = require("express");
+// const cors = require("cors");
+// const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+//const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+//const admin = require("firebase-admin");
+// const port = process.env.PORT || 3000;
+// const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString(
+//   "utf-8"
+// );
+// const serviceAccount = JSON.parse(decoded);
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount),
+// });
+
+// const app = express();
+// // middleware
+// app.use(
+//   cors({
+//     origin: [process.env.CLIENT_DOMAIN],
+//     credentials: true,
+//     optionSuccessStatus: 200,
+//   })
+// );
+// app.use(express.json());
+
+// // jwt middlewares
+// const verifyJWT = async (req, res, next) => {
+//   const token = req?.headers?.authorization?.split(" ")[1];
+//   console.log(token);
+//   if (!token) return res.status(401).send({ message: "Unauthorized Access!" });
+//   try {
+//     const decoded = await admin.auth().verifyIdToken(token);
+//     req.tokenEmail = decoded.email;
+//     console.log(decoded);
+//     next();
+//   } catch (err) {
+//     console.log(err);
+//     return res.status(401).send({ message: "Unauthorized Access!", err });
+//   }
+// };
+
+// // Create a MongoClient with a MongoClientOptions object to set the Stable API version
+// const client = new MongoClient(process.env.MONGODB_URI, {
+//   serverApi: {
+//     version: ServerApiVersion.v1,
+//     strict: true,
+//     deprecationErrors: true,
+//   },
+// });
+// async function run() {
+//   try {
+//     const db = client.db("productsDB");
+//     const plantsCollection = db.collection("products");
+    //const ordersCollection = db.collection("orders");
+    //const usersCollection = db.collection("users");
+    //const sellerRequestsCollection = db.collection("sellerRequests");
+
+//     // role middlewares
+//     const verifyADMIN = async (req, res, next) => {
+//       const email = req.tokenEmail;
+//       const user = await usersCollection.findOne({ email 
+// });
+//       if (user?.role !== "admin")
+//         return res
+//           .status(403)
+//           .send({ message: "Admin only Actions!", role: user?.role });
+
+//       next();
+    // };
+//     const verifySELLER = async (req, res, next) => {
+//       const email = req.tokenEmail;
+//       const user = await usersCollection.findOne({ email });
+//       if (user?.role !== "seller")
+//         return res
+//           .status(403)
+//           .send({ message: "Seller only Actions!", role: user?.role });
+
+//       next();
+//     };
+
+//     // Save a plant data in db
+//     app.post("/plants", verifyJWT, verifySELLER, async (req, res) => {
+//       const plantData = req.body;
+//       console.log(plantData);
+//       const result = await plantsCollection.insertOne(plantData);
+//       res.send(result);
+//     });
+
+//     // get all plants from db
+    // app.get("/plants", async (req, res) => {
+    //   const result = await plantsCollection.find().toArray();
+    //   res.send(result);
+    // });
+
+//     // get all plants from db
+//     app.get("/plants/:id", async (req, res) => {
+//       const id = req.params.id;
+//       const result = await plantsCollection.findOne({ _id: new ObjectId(id) });
+//       res.send(result);
+//     });
+
+//     // Payment endpoints
+//     app.post("/create-checkout-session", async (req, res) => {
+//       const paymentInfo = req.body;
+//       console.log(paymentInfo);
+//       const session = await stripe.checkout.sessions.create({
+//         line_items: [
+//           {
+//             price_data: {
+//               currency: "usd",
+//               product_data: {
+//                 name: paymentInfo?.name,
+//                 description: paymentInfo?.description,
+//                 images: [paymentInfo.image],
+//               },
+//               unit_amount: paymentInfo?.price * 100,
+//             },
+//             quantity: paymentInfo?.quantity,
+//           },
+//         ],
+//         customer_email: paymentInfo?.customer?.email,
+//         mode: "payment",
+//         metadata: {
+//           plantId: paymentInfo?.plantId,
+//           customer: paymentInfo?.customer.email,
+//         },
+//         success_url: `${process.env.CLIENT_DOMAIN}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+//         cancel_url: `${process.env.CLIENT_DOMAIN}/plant/${paymentInfo?.plantId}`,
+//       });
+//       res.send({ url: session.url });
+//     });
+
+//     app.post("/payment-success", async (req, res) => {
+//       const { sessionId } = req.body;
+//       const session = await stripe.checkout.sessions.retrieve(sessionId);
+//       const plant = await plantsCollection.findOne({
+//         _id: new ObjectId(session.metadata.plantId),
+//       });
+//       const order = await ordersCollection.findOne({
+//         transactionId: session.payment_intent,
+//       });
+
+//       if (session.status === "complete" && plant && !order) {
+//         // save order data in db
+//         const orderInfo = {
+//           plantId: session.metadata.plantId,
+//           transactionId: session.payment_intent,
+//           customer: session.metadata.customer,
+//           status: "pending",
+//           seller: plant.seller,
+//           name: plant.name,
+//           category: plant.category,
+//           quantity: 1,
+//           price: session.amount_total / 100,
+//           image: plant?.image,
+//         };
+//         const result = await ordersCollection.insertOne(orderInfo);
+//         // update plant quantity
+//         await plantsCollection.updateOne(
+//           {
+//             _id: new ObjectId(session.metadata.plantId),
+//           },
+//           { $inc: { quantity: -1 } }
+//         );
+
+//         return res.send({
+//           transactionId: session.payment_intent,
+//           orderId: result.insertedId,
+//         });
+//       }
+//       res.send(
+//         res.send({
+//           transactionId: session.payment_intent,
+//           orderId: order._id,
+//         })
+//       );
+//     });
+
+//     // get all orders for a customer by email
+//     app.get("/my-orders", verifyJWT, async (req, res) => {
+//       const result = await ordersCollection
+//         .find({ customer: req.tokenEmail })
+//         .toArray();
+//       res.send(result);
+//     });
+
+//     // get all orders for a seller by email
+//     app.get(
+//       "/manage-orders/:email",
+//       verifyJWT,
+//       verifySELLER,
+//       async (req, res) => {
+//         const email = req.params.email;
+
+//         const result = await ordersCollection
+//           .find({ "seller.email": email })
+//           .toArray();
+//         res.send(result);
+//       }
+//     );
+
+//     // get all plants for a seller by email
+//     app.get(
+//       "/my-inventory/:email",
+//       verifyJWT,
+//       verifySELLER,
+//       async (req, res) => {
+//         const email = req.params.email;
+
+//         const result = await plantsCollection
+//           .find({ "seller.email": email })
+//           .toArray();
+//         res.send(result);
+//       }
+//     );
+
+//     // save or update a user in db
+//     app.post("/user", async (req, res) => {
+//       const userData = req.body;
+//       userData.created_at = new Date().toISOString();
+//       userData.last_loggedIn = new Date().toISOString();
+//       userData.role = "customer";
+
+//       const query = {
+//         email: userData.email,
+//       };
+
+//       const alreadyExists = await usersCollection.findOne(query);
+//       console.log("User Already Exists---> ", !!alreadyExists);
+
+//       if (alreadyExists) {
+//         console.log("Updating user info......");
+//         const result = await usersCollection.updateOne(query, {
+//           $set: {
+//             last_loggedIn: new Date().toISOString(),
+//           },
+//         });
+//         return res.send(result);
+//       }
+
+//       console.log("Saving new user info......");
+//       const result = await usersCollection.insertOne(userData);
+//       res.send(result);
+//     });
+
+//     // get a user's role
+//     app.get("/user/role", verifyJWT, async (req, res) => {
+//       const result = await usersCollection.findOne({ email: req.tokenEmail });
+//       res.send({ role: result?.role });
+//     });
+
+//     // save become-seller request
+//     app.post("/become-seller", verifyJWT, async (req, res) => {
+//       const email = req.tokenEmail;
+//       const alreadyExists = await sellerRequestsCollection.findOne({ email });
+//       if (alreadyExists)
+//         return res
+//           .status(409)
+//           .send({ message: "Already requested, wait koro." });
+
+//       const result = await sellerRequestsCollection.insertOne({ email });
+//       res.send(result);
+//     });
+
+//     // get all seller requests for admin
+//     app.get("/seller-requests", verifyJWT, verifyADMIN, async (req, res) => {
+//       const result = await sellerRequestsCollection.find().toArray();
+//       res.send(result);
+//     });
+
+//     // get all users for admin
+//     app.get("/users", verifyJWT, verifyADMIN, async (req, res) => {
+//       const adminEmail = req.tokenEmail;
+//       const result = await usersCollection
+//         .find({ email: { $ne: adminEmail } })
+//         .toArray();
+//       res.send(result);
+//     });
+
+//     // update a user's role
+//     app.patch("/update-role", verifyJWT, verifyADMIN, async (req, res) => {
+//       const { email, role } = req.body;
+//       const result = await usersCollection.updateOne(
+//         { email },
+//         { $set: { role } }
+//       );
+//       await sellerRequestsCollection.deleteOne({ email });
+
+//       res.send(result);
+//     });
+
+//     // Send a ping to confirm a successful connection
+//     await client.db("admin").command({ ping: 1 });
+//     console.log(
+//       "Pinged your deployment. You successfully connected to MongoDB!"
+//     );
+//   } finally {
+//     // Ensures that the client will close when you finish/error
+//   }
+// }
+// run().catch(console.dir);
+
+// app.get("/", (req, res) => {
+//   res.send("Hello from Server..");
+// });
+
+// app.listen(port, () => {
+//   console.log(`Server is running on port ${port}`);
+// });
+
+
+
+// const express = require("express");
+// const cors = require("cors");
+// const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+// require("dotenv").config();
+
+// const admin = require("firebase-admin");
+// // const serviceAccount = require("./serviceKey.json");
+// const app = express();
+// const port = 3000;
+// app.use(cors());
+// app.use(express.json());
+
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount),
+// });
+
+// const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASS}@cluster0.2pjciaj.mongodb.net/?appName=Cluster0`;
+
+// const client = new MongoClient(uri, {
+//   serverApi: {
+//     version: ServerApiVersion.v1,
+//     strict: true,
+//     deprecationErrors: true,
+//   },
+// });
+
+// //for sdk
+// const verifyToken = async (req, res, next) => {
+//   const authorization = req.headers.authorization;
+//   console.log(authorization);
+//   if (!authorization) {
+//     return res.status(401).send({
+//       message: "Unauthorized access. Token not found",
+//     });
+//   }
+
+//   const token = authorization.split(" ")[1];
+
+//   try {
+//     await admin.auth().verifyIdToken(token);
+//     next();
+//   } catch (error) {
+//     res.status(401).send({
+//       message: "Unauthorized access",
+//     });
+//   }
+// };
+
+// async function run() {
+//   try {
+//     //await client.connect();
+
+//     const db = client.db("productDB");
+//     const productCollection = db.collection("products");
+
+    //   Task-1- show 6 featured items card
+    // latest 6 data
+    // get
+    // find
+
+    // app.get("/products", async (req, res) => {
+    //   const result = await productCollection
+    //     .find()
+    //     .sort({ createdAt: -1 })
+    //     .limit(6)
+    //     .toArray();
+
+    //   console.log(result);
+    //   res.send(result);
+    // });
+
+    // Task-2- take data in public health page
+    // 1. find (all/many data),
+    //  2. findOne(particular 1 ta data)
+    // app.get("/all_habits", async (req, res) => {
+    //   const result = await modelCollection.find().toArray();
+    //   res.send(result);
+    // });
+
+    // app.get("/all_habits/:id", verifyToken, async (req, res) => {
+    //   const { id } = req.params;
+    //   const objectId = new ObjectId(id);
+
+    //   const result = await modelCollection.findOne({ _id: objectId });
+
+    //   res.send({
+    //     success: true,
+    //     result,
+    //   });
+    // });
+
+    // Task - 3 : mongoDB te data pathanor way/post method 2 ta-
+    //  1. insertOne - one data sent
+    //  2. insertMany - many data sent
+
+    // app.post("/all_habits", async (req, res) => {
+    //   const data = req.body;
+    //   // console.log(data)
+    //   const result = await modelCollection.insertOne(data);
+    //   res.send({
+    //     success: true,
+    //     result,
+    //   });
+    // });
+
+    //Task - 4: to update data in mongoDB, ways are 2 -
+    //1. updateOne
+    // 2. updateMany
+    //PUT
+
+    // app.put("/all_habits/:id", async (req, res) => {
+    //   const { id } = req.params;
+    //   const data = req.body;
+    //   //  console.log(id)
+    //   //  console.log(data)
+    //   const objectId = new ObjectId(id);
+    //   const filter = { _id: objectId };
+    //   const update = {
+    //     $set: data,
+    //   };
+
+    //   const result = await modelCollection.updateOne(filter, update);
+
+    //   res.send({
+    //     success: true,
+    //     result,
+    //   });
+    // });
+
+    //Task- 5: MyHabit page
+    // app.get("/my-habit", verifyToken, async (req, res) => {
+    //   const email = req.query.email;
+    //   const result = await modelCollection
+    //     .find({ created_by: email })
+    //     .toArray();
+    //   res.send(result);
+    // });
+
+    // delete
+    // deleteOne
+    // deleteMany
+
+    // app.delete("/all_habits/:id", async (req, res) => {
+    //   const { id } = req.params;
+    //   // const objectId = new ObjectId(id)
+    //   //const filter = {_id: objectId}
+    //   const result = await modelCollection.deleteOne({ _id: new ObjectId(id) });
+
+    //   res.send({
+    //     success: true,
+    //     result,
+    //   });
+    // });
+
+    //search
+    //   app.get("/search", async (req, res) => {
+    //     const search_text = req.query.search;
+    //     const result = await modelCollection
+    //       .find({ name: { $regex: search_text, $options: "i" } })
+    //       .toArray();
+    //     res.send(result);
+    //   });
+
+    //   // Send a ping to confirm a successful connection
+    //   await client.db("admin").command({ ping: 1 });
+    //   console.log(
+    //     "Pinged your deployment. You successfully connected to MongoDB!"
+    //   );
+    // } finally {
+    // Ensures that the client will close when you finish/error
+    //await client.close();
+    //    }
+    //  }
+  // run().catch(console.dir);
+
+  //   app.get("/", (req, res) => {
+  //     res.send("Server is running fine!");
+  //   });
+
+  //   app.listen(port, () => {
+  //     console.log(`Server is listening on port ${port}`);
+  //   });
+  
+
+
+  const express = require("express");
+const cors = require("cors");
+const { MongoClient, ObjectId } = require("mongodb");
+require("dotenv").config();
+
+const app = express();
+const port = process.env.PORT || 5000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// MongoDB URI
+const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASS}@cluster0.2pjciaj.mongodb.net/?retryWrites=true&w=majority`;
+const client = new MongoClient(uri);
+
+async function run() {
+  try {
+    await client.connect(); // Connect to MongoDB
+    const db = client.db("productDB");
+    const productCollection = db.collection("products");
+
+    // Home page: get 6 latest products
+    app.get("/products", async (req, res) => {
+      const result = await productCollection
+        .find()
+        .limit(6) // remove .sort if no createdAt
+        .toArray();
+
+      console.log(result); // for debugging
+      res.send(result);
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+run().catch(console.dir);
+
+// Test route
+app.get("/", (req, res) => {
+  res.send("Server is running fine!");
+});
+
+app.listen(port, () => {
+  console.log(`Server is listening on port ${port}`);
+});
