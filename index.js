@@ -539,10 +539,24 @@ async function run() {
       res.send(result);
     });
 
+    // Get single product by id (PUBLIC)
+    app.get("/products/:id", async (req, res) => {
+      const { id } = req.params;
+
+      const product = await productCollection.findOne({
+        _id: new ObjectId(id),
+      });
+
+      if (!product) {
+        return res.status(404).send({ message: "Product not found" });
+      }
+
+      res.send(product);
+    });
 
 
 
-
+    
   } catch (err) {
     console.error(err);
   }
