@@ -515,10 +515,10 @@ const client = new MongoClient(uri);
 async function run() {
   try {
     await client.connect(); // Connect to MongoDB
-    const db = client.db("productDB");
+    const db = client.db("productsDB");
     const productCollection = db.collection("products");
 
-    // Home page: get 6 latest products
+    // Home page: get 6 products
     app.get("/products", async (req, res) => {
       const result = await productCollection
         .find()
