@@ -559,38 +559,29 @@ async function run() {
     app.post("/orders", async (req, res) => {
       const orderData = req.body;
       orderData.createdAt = new Date();
+      orderData.status = "Pending"; // default
       const result = await ordersCollection.insertOne(orderData);
       res.send({ success: true, insertedId: result.insertedId });
     });
 
-
-    
-    // Get orders by user email
+    // GET orders by user email
     app.get("/orders", async (req, res) => {
       const email = req.query.email;
       const orders = await ordersCollection.find({ email }).toArray();
       res.send(orders);
     });
 
-
-
-    // Delete order (only pending)
+    // DELETE order
     app.delete("/orders/:id", async (req, res) => {
       const id = req.params.id;
-
       const order = await ordersCollection.findOne({ _id: new ObjectId(id) });
 
-      if (order.status !== "Pending") {
-        return res
-          .status(400)
-          .send({ message: "Cannot cancel approved order" });
-      }
+      if (!order) return res.status(404).send({ message: "Order not found" });
 
       const result = await ordersCollection.deleteOne({
         _id: new ObjectId(id),
       });
-
-      res.send(result);
+      res.send({ success: true, deletedCount: result.deletedCount });
     });
   } catch (err) {
     console.error(err);
