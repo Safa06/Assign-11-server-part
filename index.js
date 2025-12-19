@@ -554,9 +554,12 @@ async function run() {
       res.send(product);
     });
 
-
-
-    
+    // Get orders by user email
+    app.get("/orders", async (req, res) => {
+      const email = req.query.email;
+      const result = await ordersCollection.find({ email }).toArray();
+      res.send(result);
+    });
   } catch (err) {
     console.error(err);
   }
