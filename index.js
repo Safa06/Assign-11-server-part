@@ -560,6 +560,32 @@ async function run() {
       const result = await ordersCollection.find({ email }).toArray();
       res.send(result);
     });
+
+    // Delete order (only pending)
+    app.delete("/orders/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const order = await ordersCollection.findOne({ _id: new ObjectId(id) });
+
+      if (order.status !== "Pending") {
+        return res
+          .status(400)
+          .send({ message: "Cannot cancel approved order" });
+      }
+
+      const result = await ordersCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+
+      res.send(result);
+    });
+
+
+
+
+
+
+    
   } catch (err) {
     console.error(err);
   }
