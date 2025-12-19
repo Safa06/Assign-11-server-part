@@ -517,6 +517,7 @@ async function run() {
     await client.connect(); // Connect to MongoDB
     const db = client.db("productsDB");
     const productCollection = db.collection("products");
+    const ordersCollection = db.collection("orders");
 
     // Home page: get 6 products
     app.get("/products", async (req, res) => {
@@ -554,12 +555,24 @@ async function run() {
       res.send(product);
     });
 
+    // POST new order
+    app.post("/orders", async (req, res) => {
+      const orderData = req.body;
+      orderData.createdAt = new Date();
+      const result = await ordersCollection.insertOne(orderData);
+      res.send({ success: true, insertedId: result.insertedId });
+    });
+
+
+    
     // Get orders by user email
     app.get("/orders", async (req, res) => {
       const email = req.query.email;
-      const result = await ordersCollection.find({ email }).toArray();
-      res.send(result);
+      const orders = await ordersCollection.find({ email }).toArray();
+      res.send(orders);
     });
+
+
 
     // Delete order (only pending)
     app.delete("/orders/:id", async (req, res) => {
@@ -579,13 +592,6 @@ async function run() {
 
       res.send(result);
     });
-
-
-
-
-
-
-    
   } catch (err) {
     console.error(err);
   }
