@@ -606,8 +606,43 @@ async function run() {
       res.send(result);
     });
 
+    //dashboard
+    // Get all products
+    app.get("/all-products", async (req, res) => {
+      const result = await productCollection.find().toArray();
+      res.send(result);
+    });
 
-    
+    // Delete a product
+    app.delete("/all-products/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await productCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
+
+    // Update "Show on Home" toggle
+    app.patch("/all-products/:id/show-home", async (req, res) => {
+      const id = req.params.id;
+      const { showHome } = req.body;
+      const result = await productCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { showHome } }
+      );
+      res.send(result);
+    });
+
+    // Update product info (title, price, description, category)
+    app.patch("/all-products/:id", async (req, res) => {
+      const id = req.params.id;
+      const { title, description, price, category } = req.body;
+      const result = await productCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { title, description, price, category } }
+      );
+      res.send(result);
+    });
   } catch (err) {
     console.error(err);
   }
