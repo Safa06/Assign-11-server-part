@@ -583,6 +583,31 @@ async function run() {
       });
       res.send({ success: true, deletedCount: result.deletedCount });
     });
+
+    ///admin side----
+
+    // get all users
+    app.get("/users", async (req, res) => {
+      const users = await usersCollection.find().toArray();
+      res.send(users);
+    });
+
+    // update role/status
+    app.patch("/users/:id", async (req, res) => {
+      const { role, status } = req.body;
+
+      const result = await usersCollection.updateOne(
+        { _id: new ObjectId(req.params.id) },
+        {
+          $set: { role, status },
+        }
+      );
+
+      res.send(result);
+    });
+
+
+    
   } catch (err) {
     console.error(err);
   }
