@@ -830,26 +830,48 @@ async function run() {
 
 
     app.get("/pending-orders", async (req, res) => {
+      try {
       const result = await orderCollection
         .find({ status: "Pending" })
         .toArray();
       res.send(result);
-    });
+    } 
+    catch (error) {
+      console.error(error);
+      res.status(500).send({ message: "Failed to fetch pending orders" });
+    } });
 
+    
     app.patch("/pending-orders/:id", async (req, res) => {
-      const { status } = req.body;
-      const id = req.params.id;
+      try {
+        const { status } = req.body; // "Approved" or "Rejected"
+        const id = req.params.id;
 
-      const updateDoc = {
-        status,
-        ...(status === "Approved" && { approvedAt: new Date() }),
-      };
+        const updateData = { status };
+        if (status === "Approved") {
+          updateData.approvedAt = new Date();
+        }
 
-      const result = await orderCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: updateDoc }
-      );
+        const result = await ordersCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updateData }
+        );
 
+        if (result.matchedCount === 0)
+          return res.status(404).send({ message: "Order not found" });
+
+        res.send({ success: true });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to update order status" });
+      }
+    });
+    
+
+    app.get("/approved-orders", async (req, res) => {
+      const result = await orderCollection
+        .find({ status: "Approved" })
+        .toArray();
       res.send(result);
     });
 
@@ -868,16 +890,21 @@ async function run() {
     });
 
 
-    app.patch("/orders/tracking/:id", async (req, res) => {
-      const trackingUpdate = req.body;
+   app.patch("/orders/:id/tracking", async (req, res) => {
+     const id = req.params.id;
+     const trackingData = {
+       ...req.body,
+       time: new Date(),
+     };
 
-      const result = await orderCollection.updateOne(
-        { _id: new ObjectId(req.params.id) },
-        { $push: { tracking: trackingUpdate } }
-      );
+     const result = await orderCollection.updateOne(
+       { _id: new ObjectId(id) },
+       { $push: { tracking: trackingData } }
+     );
 
-      res.send(result);
-    });
+     res.send(result);
+   });
+
 
     
 
