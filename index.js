@@ -643,6 +643,38 @@ async function run() {
       );
       res.send(result);
     });
+
+    // Toggle showHome  (admin-home-admin)
+    app.patch("/products/show-home/:id", async (req, res) => {
+      const id = req.params.id;
+      const { showHome } = req.body;
+
+      const result = await productCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { showHome } }
+      );
+
+      res.send(result);
+    });
+
+    // Update product (admin edit)
+    app.patch("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+
+      const result = await productCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updatedData }
+      );
+
+      res.send(result);
+    });
+
+
+
+
+
+    
   } catch (err) {
     console.error(err);
   }
