@@ -787,6 +787,66 @@ async function run() {
       if (!order) return res.status(404).send({ message: "Order not found" });
       res.send(order);
     });
+
+
+    // manager part starts
+// app.post("/products", async (req, res) => {
+//   const product = {
+//     ...req.body,
+//     createdBy: req.user.email,
+//     createdAt: new Date(),
+//     showHome: false,
+//   };
+
+//   const result = await productCollection.insertOne(product);
+//   res.send(result);
+// });
+    
+    
+    app.get("/manager-products", async (req, res) => {
+      const email = req.query.email;
+      const result = await productCollection
+        .find({ createdBy: email })
+        .toArray();
+      res.send(result);
+    });
+
+
+    app.get("/pending-orders", async (req, res) => {
+      const result = await orderCollection
+        .find({ status: "Pending" })
+        .toArray();
+      res.send(result);
+    });
+
+    app.patch("/orders/approve/:id", async (req, res) => {
+      const result = await orderCollection.updateOne(
+        { _id: new ObjectId(req.params.id) },
+        {
+          $set: {
+            status: "Approved",
+            approvedAt: new Date(),
+          },
+        }
+      );
+      res.send(result);
+    });
+
+
+    app.patch("/orders/tracking/:id", async (req, res) => {
+      const trackingUpdate = req.body;
+
+      const result = await orderCollection.updateOne(
+        { _id: new ObjectId(req.params.id) },
+        { $push: { tracking: trackingUpdate } }
+      );
+
+      res.send(result);
+    });
+
+    
+
+
   } catch (err) {
     console.error(err);
   }
