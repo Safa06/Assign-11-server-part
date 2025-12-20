@@ -811,6 +811,23 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/manager-products", async (req, res) => {
+      const email = req.query.email;
+      const result = await productsCollection
+        .find({ managerEmail: email })
+        .toArray();
+      res.send(result);
+    });
+
+    app.delete("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await productsCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
+
+
 
     app.get("/pending-orders", async (req, res) => {
       const result = await orderCollection
@@ -818,6 +835,24 @@ async function run() {
         .toArray();
       res.send(result);
     });
+
+    app.patch("/pending-orders/:id", async (req, res) => {
+      const { status } = req.body;
+      const id = req.params.id;
+
+      const updateDoc = {
+        status,
+        ...(status === "Approved" && { approvedAt: new Date() }),
+      };
+
+      const result = await orderCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updateDoc }
+      );
+
+      res.send(result);
+    });
+
 
     app.patch("/orders/approve/:id", async (req, res) => {
       const result = await orderCollection.updateOne(
