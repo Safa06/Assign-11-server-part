@@ -657,24 +657,58 @@ async function run() {
       res.send(result);
     });
 
-    // Update product (admin edit)
     app.patch("/products/:id", async (req, res) => {
-      const id = req.params.id;
-      const updatedData = req.body;
+      try {
+        const id = req.params.id;
+        const updatedProduct = req.body;
 
-      const result = await productCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: updatedData }
-      );
+        const result = await productCollection.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $set: {
+              title: updatedProduct.title,
+              price: updatedProduct.price,
+              description: updatedProduct.description,
+              category: updatedProduct.category,
+              image: updatedProduct.image,
+            },
+          }
+        );
 
-      res.send(result);
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to update product" });
+      }
+    });
+
+
+    app.delete("/products/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+
+        const result = await productCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        if (result.deletedCount === 0) {
+          return res.status(404).send({ message: "Product not found" });
+        }
+
+        res.send({ message: "Product deleted successfully" });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to delete product" });
+      }
     });
 
 
 
 
 
-    
+
+
+
   } catch (err) {
     console.error(err);
   }
