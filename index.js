@@ -735,11 +735,58 @@ async function run() {
       }
     });
 
+    // Get single order by ID -- admin All orders page View button to see all the orders
+    app.get("/orders/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const order = await ordersCollection.findOne({ _id: new ObjectId(id) });
+        if (!order) return res.status(404).send({ message: "Order not found" });
+        res.send(order);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to fetch order" });
+      }
+    });
+
+    // When creating an order
+   app.post("/orders", async (req, res) => {
+     const orderData = req.body;
+
+     orderData.createdAt = new Date();
+     orderData.status = "Pending";
+     orderData.tracking = [{ status: "Pending", date: new Date() }];
+
+     const result = await ordersCollection.insertOne(orderData);
+     res.send({ success: true, insertedId: result.insertedId });
+   });
 
 
+    // Update order status + add tracking
+    app.patch("/all-orders/:id", async (req, res) => {
+      const { status } = req.body;
+      const id = req.params.id;
+
+      const result = await ordersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: { status },
+          $push: {
+            tracking: { status, date: new Date() },
+          },
+        }
+      );
+
+      res.send(result);
+    });
 
 
-    
+    // Get order details
+    app.get("/orders/:id", async (req, res) => {
+      const id = req.params.id;
+      const order = await ordersCollection.findOne({ _id: new ObjectId(id) });
+      if (!order) return res.status(404).send({ message: "Order not found" });
+      res.send(order);
+    });
   } catch (err) {
     console.error(err);
   }
