@@ -555,7 +555,7 @@ async function run() {
       res.send(product);
     });
 
-    // POST new order
+    // POST new order -- booking form
     app.post("/orders", async (req, res) => {
       const orderData = req.body;
       orderData.createdAt = new Date();
@@ -564,15 +564,20 @@ async function run() {
       res.send({ success: true, insertedId: result.insertedId });
     });
 
-    // GET orders by user email
-    app.get("/orders", async (req, res) => {
-      const email = req.query.email;
-      const orders = await ordersCollection.find({ email }).toArray();
-      res.send(orders);
+    // User - fetch orders by email (My Orders page)
+    app.get("/my-orders", async (req, res) => {
+      try {
+        const email = req.query.email;
+        const orders = await ordersCollection.find({ email }).toArray();
+        res.send(orders);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to fetch user orders" });
+      }
     });
 
     // DELETE order
-    app.delete("/orders/:id", async (req, res) => {
+    app.delete("/my-orders/:id", async (req, res) => {
       const id = req.params.id;
       const order = await ordersCollection.findOne({ _id: new ObjectId(id) });
 
@@ -682,7 +687,6 @@ async function run() {
       }
     });
 
-
     app.delete("/products/:id", async (req, res) => {
       try {
         const id = req.params.id;
@@ -702,34 +706,40 @@ async function run() {
       }
     });
 
-    // admin - all-orders
-    app.get("/orders", async (req, res) => {
-      const result = await orderCollection.find().toArray();
-      res.send(result);
+    // Admin - update order status (approve/reject)
+    app.patch("/all-orders/:id", async (req, res) => {
+      try {
+        const { status } = req.body;
+        const id = req.params.id;
+
+        const result = await ordersCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status } }
+        );
+
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to update order" });
+      }
     });
 
-    //admin - all-orders (update orders/ approve/reject)
-    app.patch("/orders/:id", async (req, res) => {
-      const { status } = req.body;
-      const id = req.params.id;
-
-      const result = await orderCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: { status } }
-      );
-
-      res.send(result);
+    // Admin - fetch all orders
+    app.get("/all-orders", async (req, res) => {
+      try {
+        const result = await ordersCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to fetch all orders" });
+      }
     });
 
 
 
 
 
-
-
-
-
-
+    
   } catch (err) {
     console.error(err);
   }
