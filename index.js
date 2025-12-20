@@ -702,6 +702,27 @@ async function run() {
       }
     });
 
+    // admin - all-orders
+    app.get("/orders", async (req, res) => {
+      const result = await orderCollection.find().toArray();
+      res.send(result);
+    });
+
+    //admin - all-orders (update orders/ approve/reject)
+    app.patch("/orders/:id", async (req, res) => {
+      const { status } = req.body;
+      const id = req.params.id;
+
+      const result = await orderCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { status } }
+      );
+
+      res.send(result);
+    });
+
+
+
 
 
 
