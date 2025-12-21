@@ -5,10 +5,18 @@ require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 5000;
+const Stripe = require("stripe");
+
+
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+
 
 // MongoDB URI
 const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASS}@cluster0.2pjciaj.mongodb.net/?retryWrites=true&w=majority`;
@@ -22,33 +30,24 @@ async function run() {
     const ordersCollection = db.collection("orders");
     const usersCollection = db.collection("users");
 
+    // create payment intent
+    app.post("/create-payment-intent", async (req, res) => {
+      const { amount } = req.body;
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount, // in cents
+        currency: "usd",
+        automatic_payment_methods: { enabled: true },
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+
     
-//     app.post("/login", async (req, res) => {
-//   const { email } = req.body;
-
-//   const user = await usersCollection.findOne({ email });
-//   if (!user) {
-//     return res.status(404).send({ message: "User not found" });
-//   }
-
-//   res.send(user); // returns { name, email, role }
-// });
-
-//     app.post("/register", async (req, res) => {
-//       const { name, email, role } = req.body;
-
-//       await usersCollection.insertOne({ name, email, role });
-
-//       res.send({ name, email, role });
-//     });
-
     // Home page: get 6 products
-    
-    
-    
-    
-    
-    
     app.get("/products", async (req, res) => {
       const result = await productCollection
         .find()
