@@ -24,23 +24,24 @@ async function run() {
 
 
   app.post("/login", async (req, res) => {
-    const { email, role } = req.body;
+    const { name, email, role } = req.body;
 
     await usersCollection.updateOne(
+      {name},
       { email },
-      { $set: { email, role } },
+      { $set: { name, email, role } },
       { upsert: true }
     );
 
-    res.send({ email, role });
+    res.send({ name, email, role });
   });
 
   app.post("/register", async (req, res) => {
-    const { email, role } = req.body;
+    const { name, email, role } = req.body;
 
-    await usersCollection.insertOne({ email, role });
+    await usersCollection.insertOne({ name, email, role });
 
-    res.send({ email, role });
+    res.send({ name, email, role });
   });
 
     
