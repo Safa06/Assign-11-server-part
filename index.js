@@ -22,73 +22,33 @@ async function run() {
     const ordersCollection = db.collection("orders");
     const usersCollection = db.collection("users");
 
-    // app.post("/login", async (req, res) => {
-    //   const { name, email, role } = req.body;
-
-    //   await usersCollection.updateOne(
-    //     { name },
-    //     { email },
-    //     { $set: { name, email, role } },
-    //     { upsert: true }
-    //   );
-
-    //   res.send({ name, email, role });
-    // });
-
-    // app.post("/register", async (req, res) => {
-    //   const { name, email, role } = req.body;
-
-    //   await usersCollection.insertOne({ name, email, role });
-
-    //   res.send({ name, email, role });
-    // });
-
-    // ----------------------------
-    // LOGIN / REGISTER HANDLING
-    // ----------------------------
-
-    // Login: check user role by email
-    app.get("/users", async (req, res) => {
-      try {
-        const email = req.query.email;
-        if (!email)
-          return res.status(400).send({ message: "Email is required" });
-
-        const users = await usersCollection.find({ email }).toArray();
-        res.send(users); // frontend uses users[0] for role
-      } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Failed to fetch user" });
-      }
-    });
-
-    // Register new user
-    app.post("/register", async (req, res) => {
-      try {
-        const { name, email, role } = req.body;
-
-        const existingUser = await usersCollection.findOne({ email });
-        if (existingUser) {
-          return res.status(400).send({ message: "User already exists" });
-        }
-
-        const result = await usersCollection.insertOne({
-          name,
-          email,
-          role: role || "user",
-          createdAt: new Date(),
-        });
-        res.send({ success: true, insertedId: result.insertedId });
-      } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Failed to create user" });
-      }
-    });
-
-
     
+//     app.post("/login", async (req, res) => {
+//   const { email } = req.body;
+
+//   const user = await usersCollection.findOne({ email });
+//   if (!user) {
+//     return res.status(404).send({ message: "User not found" });
+//   }
+
+//   res.send(user); // returns { name, email, role }
+// });
+
+//     app.post("/register", async (req, res) => {
+//       const { name, email, role } = req.body;
+
+//       await usersCollection.insertOne({ name, email, role });
+
+//       res.send({ name, email, role });
+//     });
 
     // Home page: get 6 products
+    
+    
+    
+    
+    
+    
     app.get("/products", async (req, res) => {
       const result = await productCollection
         .find()
