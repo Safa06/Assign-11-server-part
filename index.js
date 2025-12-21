@@ -23,20 +23,28 @@ async function run() {
     const usersCollection = db.collection("users");
 
 
-    //login page 
-    app.post("/login", async (req, res) => {
-      const { email, role } = req.body;
+  app.post("/login", async (req, res) => {
+    const { email, role } = req.body;
 
-      // Upsert user with selected role
-      await usersCollection.updateOne(
-        { email },
-        { $set: { email, role } },
-        { upsert: true }
-      );
+    await usersCollection.updateOne(
+      { email },
+      { $set: { email, role } },
+      { upsert: true }
+    );
 
-      res.send({ email, role });
-    });
+    res.send({ email, role });
+  });
 
+  app.post("/register", async (req, res) => {
+    const { email, role } = req.body;
+
+    await usersCollection.insertOne({ email, role });
+
+    res.send({ email, role });
+  });
+
+    
+    
     // Home page: get 6 products
     app.get("/products", async (req, res) => {
       const result = await productCollection
