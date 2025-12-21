@@ -22,30 +22,72 @@ async function run() {
     const ordersCollection = db.collection("orders");
     const usersCollection = db.collection("users");
 
+    // app.post("/login", async (req, res) => {
+    //   const { name, email, role } = req.body;
 
-  app.post("/login", async (req, res) => {
-    const { name, email, role } = req.body;
+    //   await usersCollection.updateOne(
+    //     { name },
+    //     { email },
+    //     { $set: { name, email, role } },
+    //     { upsert: true }
+    //   );
 
-    await usersCollection.updateOne(
-      {name},
-      { email },
-      { $set: { name, email, role } },
-      { upsert: true }
-    );
+    //   res.send({ name, email, role });
+    // });
 
-    res.send({ name, email, role });
-  });
+    // app.post("/register", async (req, res) => {
+    //   const { name, email, role } = req.body;
 
-  app.post("/register", async (req, res) => {
-    const { name, email, role } = req.body;
+    //   await usersCollection.insertOne({ name, email, role });
 
-    await usersCollection.insertOne({ name, email, role });
+    //   res.send({ name, email, role });
+    // });
 
-    res.send({ name, email, role });
-  });
+    // ----------------------------
+    // LOGIN / REGISTER HANDLING
+    // ----------------------------
+
+    // Login: check user role by email
+    app.get("/users", async (req, res) => {
+      try {
+        const email = req.query.email;
+        if (!email)
+          return res.status(400).send({ message: "Email is required" });
+
+        const users = await usersCollection.find({ email }).toArray();
+        res.send(users); // frontend uses users[0] for role
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to fetch user" });
+      }
+    });
+
+    // Register new user
+    app.post("/register", async (req, res) => {
+      try {
+        const { name, email, role } = req.body;
+
+        const existingUser = await usersCollection.findOne({ email });
+        if (existingUser) {
+          return res.status(400).send({ message: "User already exists" });
+        }
+
+        const result = await usersCollection.insertOne({
+          name,
+          email,
+          role: role || "user",
+          createdAt: new Date(),
+        });
+        res.send({ success: true, insertedId: result.insertedId });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to create user" });
+      }
+    });
+
 
     
-    
+
     // Home page: get 6 products
     app.get("/products", async (req, res) => {
       const result = await productCollection
@@ -133,25 +175,77 @@ async function run() {
 
     ///admin side----
 
-    // get all users
-    app.get("/users", async (req, res) => {
-      const users = await usersCollection.find().toArray();
-      res.send(users);
+    app.post("/users", async (req, res) => {
+      try {
+        const { name, email, role } = req.body;
+
+        // check if user exists
+        const existingUser = await usersCollection.findOne({ email });
+        if (existingUser) {
+          return res.status(400).send({ message: "User already exists" });
+        }
+
+        const result = await usersCollection.insertOne({
+          name,
+          email,
+          role: role || "user",
+          createdAt: new Date(),
+        });
+        res.send({ success: true, insertedId: result.insertedId });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to create user" });
+      }
     });
 
-    // Update user role/status
-    app.patch("/users/:id", async (req, res) => {
-      const { role, status } = req.body;
-
+    // ----------------------------
+    // GET USERS BY EMAIL (Login or fetch role)
+    // ----------------------------
+    app.get("/users", async (req, res) => {
       try {
-        const result = await usersCollection.updateOne(
-          { _id: new ObjectId(req.params.id) },
-          { $set: { role, status } }
-        );
-        res.send(result);
+        const email = req.query.email;
+        if (!email) return res.status(400).send({ message: "Email required" });
+
+        const user = await usersCollection.findOne({ email });
+        if (!user) return res.status(404).send({ message: "User not found" });
+
+        res.send(user); // include role, name, email
       } catch (err) {
         console.error(err);
+        res.status(500).send({ message: "Failed to fetch user" });
+      }
+    });
+
+    // ----------------------------
+    // UPDATE USER ROLE / STATUS
+    // ----------------------------
+    app.patch("/users/:id", async (req, res) => {
+      try {
+        const { role } = req.body;
+        const id = req.params.id;
+
+        const result = await usersCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { role } }
+        );
+
+        res.send(result);
+      } catch (error) {
+        console.error(error);
         res.status(500).send({ message: "Failed to update user role" });
+      }
+    });
+
+    // ----------------------------
+    // GET ALL USERS (Admin - Manage Users Page)
+    // ----------------------------
+    app.get("/manage-users", async (req, res) => {
+      try {
+        const users = await usersCollection.find().toArray();
+        res.send(users);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to fetch users" });
       }
     });
 
@@ -329,27 +423,6 @@ async function run() {
       if (!order) return res.status(404).send({ message: "Order not found" });
       res.send(order);
     });
-
-    // manager part starts
-    // app.post("/products", async (req, res) => {
-    //   const product = {
-    //     ...req.body,
-    //     createdBy: req.user.email,
-    //     createdAt: new Date(),
-    //     showHome: false,
-    //   };
-
-    //   const result = await productCollection.insertOne(product);
-    //   res.send(result);
-    // });
-
-    // app.get("/manager-products", async (req, res) => {
-    //   const email = req.query.email;
-    //   const result = await productCollection
-    //     .find({ createdBy: email })
-    //     .toArray();
-    //   res.send(result);
-    // });
 
     app.get("/manager-products", async (req, res) => {
       const email = req.query.email;
