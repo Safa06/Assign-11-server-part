@@ -30,21 +30,22 @@ async function run() {
     const ordersCollection = db.collection("orders");
     const usersCollection = db.collection("users");
 
-    pp.post("/create-payment-intent", async (req, res) => {
+
+    //payment - stripe
+    app.post("/create-payment-intent", async (req, res) => {
       try {
-        const { amount } = req.body; // amount in cents
+        const { amount } = req.body;
+
         const paymentIntent = await stripe.paymentIntents.create({
-          amount,
+          amount, // in cents
           currency: "usd",
-          payment_method_types: ["card"],
         });
+
         res.send({ clientSecret: paymentIntent.client_secret });
       } catch (err) {
-        console.error(err);
-        res.status(500).send({ error: "Payment failed" });
+        res.status(500).send({ message: "Payment failed" });
       }
     });
-
 
     // Home page: get 6 products
     app.get("/products", async (req, res) => {
